@@ -124,25 +124,3 @@ datasets/
 .Trashes
 ehthumbs.db
 Thumbs.db
-Desktop.ini
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
-*~
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Profiling data
-.prof
