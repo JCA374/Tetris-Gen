@@ -9,8 +9,48 @@ selection, crossover, and mutation.
 import numpy as np
 import random
 from typing import List, Tuple, Dict
+from multiprocessing import Pool, cpu_count
 from agent import TetrisAgent
 from heuristics import HEURISTIC_NAMES
+
+
+def _evaluate_genome_worker(args):
+    """
+    Worker function for parallel genome evaluation.
+    Must be a top-level function to be picklable.
+
+    Args:
+        args: Tuple of (genome_index, weights, env_creator, games_per_genome)
+
+    Returns:
+        Tuple of (genome_index, fitness, avg_lines, avg_score)
+    """
+    genome_idx, weights, env_creator, games_per_genome = args
+
+    total_score = 0
+    total_lines = 0
+
+    # Create agent once and reuse (agent state is reset in play_game)
+    agent = TetrisAgent(weights)
+
+    for game_num in range(games_per_genome):
+        env = env_creator()
+
+        result = agent.play_game(env, render=False)
+
+        total_score += result['score']
+        total_lines += result['lines']
+
+        env.close()
+
+    # Average results
+    avg_lines = total_lines / games_per_genome
+    avg_score = total_score / games_per_genome
+
+    # Calculate fitness
+    fitness = avg_lines * 100 + avg_score
+
+    return genome_idx, fitness, avg_lines, avg_score
 
 
 class Genome:
@@ -52,7 +92,8 @@ class GeneticAlgorithm:
         mutation_rate=0.1,
         mutation_step=0.2,
         elite_size=1,
-        tournament_size=3
+        tournament_size=3,
+        n_workers=1
     ):
         """
         Initialize the genetic algorithm.
@@ -63,12 +104,14 @@ class GeneticAlgorithm:
             mutation_step: Maximum relative change during mutation (as fraction)
             elite_size: Number of top performers to preserve unchanged
             tournament_size: Number of individuals in tournament selection
+            n_workers: Number of parallel workers for fitness evaluation (default: 1)
         """
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.mutation_step = mutation_step
         self.elite_size = elite_size
         self.tournament_size = tournament_size
+        self.n_workers = n_workers
 
         self.population: List[Genome] = []
         self.generation = 0
@@ -92,14 +135,27 @@ class GeneticAlgorithm:
             env_creator: Function that creates a new gym environment
             games_per_genome: Number of games to play per genome for averaging
         """
+        if self.n_workers > 1:
+            # Parallel evaluation using multiprocessing
+            self._evaluate_fitness_parallel(env_creator, games_per_genome)
+        else:
+            # Sequential evaluation (original implementation)
+            self._evaluate_fitness_sequential(env_creator, games_per_genome)
+
+    def _evaluate_fitness_sequential(self, env_creator, games_per_genome):
+        """
+        Sequential fitness evaluation (single-threaded).
+        """
         for i, genome in enumerate(self.population):
             total_score = 0
             total_lines = 0
 
+            # Create agent once and reuse
+            agent = TetrisAgent(genome.weights)
+
             # Play multiple games and average the results
             for game_num in range(games_per_genome):
                 env = env_creator()
-                agent = TetrisAgent(genome.weights)
 
                 result = agent.play_game(env, render=False)
 
@@ -121,6 +177,38 @@ class GeneticAlgorithm:
             print(f"  Genome {i+1}/{self.population_size}: "
                   f"Lines={avg_lines:.1f}, Score={avg_score:.1f}, "
                   f"Fitness={genome.fitness:.1f}")
+
+    def _evaluate_fitness_parallel(self, env_creator, games_per_genome):
+        """
+        Parallel fitness evaluation using multiprocessing.
+        Uses imap_unordered for better RAM efficiency - processes results as they arrive.
+        """
+        # Prepare arguments for each genome
+        eval_args = [
+            (i, genome.weights, env_creator, games_per_genome)
+            for i, genome in enumerate(self.population)
+        ]
+
+        # Evaluate genomes in parallel
+        print(f"  Evaluating {len(self.population)} genomes using {self.n_workers} workers...")
+        with Pool(processes=self.n_workers) as pool:
+            # Use imap_unordered to process results as they arrive (better RAM efficiency)
+            # chunksize=1 ensures even distribution for small populations
+            results_iter = pool.imap_unordered(
+                _evaluate_genome_worker,
+                eval_args,
+                chunksize=1
+            )
+
+            # Process results as they arrive instead of waiting for all
+            for genome_idx, fitness, avg_lines, avg_score in results_iter:
+                genome = self.population[genome_idx]
+                genome.fitness = fitness
+                genome.games_played += games_per_genome
+
+                print(f"  Genome {genome_idx+1}/{self.population_size}: "
+                      f"Lines={avg_lines:.1f}, Score={avg_score:.1f}, "
+                      f"Fitness={fitness:.1f}")
 
     def selection(self) -> Genome:
         """
@@ -258,7 +346,8 @@ class GeneticAlgorithm:
                 'mutation_rate': self.mutation_rate,
                 'mutation_step': self.mutation_step,
                 'elite_size': self.elite_size,
-                'tournament_size': self.tournament_size
+                'tournament_size': self.tournament_size,
+                'n_workers': self.n_workers
             }
         }
 

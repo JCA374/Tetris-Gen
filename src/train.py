@@ -10,6 +10,7 @@ import os
 import argparse
 import pickle
 from datetime import datetime
+from multiprocessing import cpu_count
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -101,12 +102,19 @@ def main():
                         help='Mutation rate (default: 0.1)')
     parser.add_argument('--mutation-step', type=float, default=0.2,
                         help='Mutation step size (default: 0.2)')
+    parser.add_argument('--workers', type=int, default=0,
+                        help='Number of parallel workers (default: 0 = auto-detect CPUs)')
     parser.add_argument('--resume', type=str, default=None,
                         help='Resume from checkpoint file')
     parser.add_argument('--output-dir', type=str, default='results',
                         help='Output directory for results (default: results)')
 
     args = parser.parse_args()
+
+    # Auto-detect number of workers if not specified
+    if args.workers <= 0:
+        args.workers = cpu_count()
+        print(f"Auto-detected {args.workers} CPU cores")
 
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
@@ -122,6 +130,7 @@ def main():
     print(f"Games per genome: {args.games}")
     print(f"Mutation rate: {args.mutation_rate}")
     print(f"Mutation step: {args.mutation_step}")
+    print(f"Parallel workers: {args.workers}")
     print(f"Output directory: {run_dir}")
     print("=" * 60)
 
@@ -131,7 +140,8 @@ def main():
         mutation_rate=args.mutation_rate,
         mutation_step=args.mutation_step,
         elite_size=2,
-        tournament_size=3
+        tournament_size=3,
+        n_workers=args.workers
     )
 
     # Load checkpoint or initialize new population
