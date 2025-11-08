@@ -163,9 +163,21 @@ def main():
     print("\nStarting training...\n")
 
     try:
+        gen_start_times = []
+
         for gen in range(start_gen, args.generations):
+            gen_start_time = datetime.now()
+
             print(f"\n{'='*60}")
             print(f"Generation {gen + 1}/{args.generations}")
+            if gen_start_times:
+                avg_time = sum((t[1] - t[0]).total_seconds() for t in gen_start_times) / len(gen_start_times)
+                remaining_gens = args.generations - (gen + 1)
+                eta_seconds = avg_time * remaining_gens
+                eta_hours = int(eta_seconds // 3600)
+                eta_mins = int((eta_seconds % 3600) // 60)
+                print(f"Avg time/gen: {int(avg_time/60)}m {int(avg_time%60)}s | "
+                      f"ETA: {eta_hours}h {eta_mins}m")
             print(f"{'='*60}")
 
             # Evaluate fitness
@@ -174,6 +186,11 @@ def main():
 
             # Evolve population
             ga.evolve_population()
+
+            gen_end_time = datetime.now()
+            gen_start_times.append((gen_start_time, gen_end_time))
+            elapsed = (gen_end_time - gen_start_time).total_seconds()
+            print(f"Generation {gen + 1} completed in {int(elapsed/60)}m {int(elapsed%60)}s")
 
             # Save checkpoint every 5 generations
             if (gen + 1) % 5 == 0:

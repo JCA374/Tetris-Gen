@@ -79,6 +79,19 @@ python src/train.py --resume results/run_YYYYMMDD_HHMMSS/checkpoint_gen_25.pkl
 python src/train.py --mutation-rate 0.15 --mutation-step 0.3
 ```
 
+### Monitoring Training Progress
+
+```bash
+# Analyze progress from a checkpoint
+python src/analyze_progress.py results/run_YYYYMMDD_HHMMSS/checkpoint_gen_N.pkl
+```
+
+This will show:
+- Current generation and population size
+- Best fitness achieved across all generations
+- Generation-by-generation fitness history with improvements
+- Progress statistics
+
 ### Evaluation
 
 ```bash
@@ -160,3 +173,4 @@ Results are saved to timestamped directories: `results/run_YYYYMMDD_HHMMSS/`
 - Fitness evaluation is stochastic due to random piece sequences; use `--games` to average multiple runs
 - Training generates large checkpoint files; results/ directory is gitignored
 - The agent evaluates moves greedily (one piece at a time); it does not plan multiple pieces ahead
+- **Training slows down significantly** as genomes improve and play longer games. Expect 2-3x slowdown from early to late generations. The benchmark uses random genomes that fail quickly, so real training takes much longer.
