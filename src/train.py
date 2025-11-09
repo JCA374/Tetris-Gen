@@ -192,10 +192,9 @@ def main():
             elapsed = (gen_end_time - gen_start_time).total_seconds()
             print(f"Generation {gen + 1} completed in {int(elapsed/60)}m {int(elapsed%60)}s")
 
-            # Save checkpoint every 2 generations
-            if (gen + 1) % 2 == 0:
-                checkpoint_path = os.path.join(run_dir, f'checkpoint_gen_{gen+1}.pkl')
-                ga.save_checkpoint(checkpoint_path)
+            # Save checkpoint every generation
+            checkpoint_path = os.path.join(run_dir, f'checkpoint_gen_{gen+1}.pkl')
+            ga.save_checkpoint(checkpoint_path)
 
             # Plot progress every 2 generations
             if (gen + 1) % 2 == 0:
