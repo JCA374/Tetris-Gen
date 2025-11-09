@@ -1,0 +1,170 @@
+{
+  "system_info": {
+    "hostname": "DESKTOP-APPKIAQ",
+    "user": "JonasCarlsson",
+    "cpu_cores": 8,
+    "platform": "win32",
+    "date_benchmarked": "2025-11-09",
+    "notes": "Main development machine, sufficient RAM for parallel training"
+  },
+
+  "benchmark_results": {
+    "test_configuration": {
+      "test_population": 8,
+      "test_games": 2,
+      "total_test_games": 16
+    },
+
+    "sequential": {
+      "workers": 1,
+      "total_time_seconds": 329.13,
+      "games_per_second": 0.05,
+      "avg_time_per_game": 20.571,
+      "speedup": 1.0
+    },
+
+    "parallel_4workers": {
+      "workers": 4,
+      "total_time_seconds": 47.29,
+      "games_per_second": 0.34,
+      "avg_time_per_game": 2.956,
+      "speedup": 6.96,
+      "notes": "OPTIMAL - Best performance"
+    },
+
+    "parallel_8workers": {
+      "workers": 8,
+      "total_time_seconds": 86.02,
+      "games_per_second": 0.19,
+      "avg_time_per_game": 5.376,
+      "speedup": 3.83,
+      "notes": "Worse than 4 workers due to overhead"
+    }
+  },
+
+  "recommendations": {
+    "optimal_workers": 4,
+    "optimal_throughput": 0.34,
+
+    "worker_alignment": {
+      "description": "Population should be divisible by worker count for 100% efficiency",
+      "recommended_populations": [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60],
+      "avoid_populations": [5, 10, 15, 25, 30, 35, 50, 55]
+    },
+
+    "configurations": {
+      "quick_test": {
+        "command": "python src/train.py --population 20 --generations 50 --games 3 --workers 4",
+        "population": 20,
+        "generations": 50,
+        "games": 3,
+        "workers": 4,
+        "total_games": 3000,
+        "estimated_time_hours": 2.5,
+        "efficiency_percent": 100,
+        "use_case": "Quick iteration and testing"
+      },
+
+      "recommended_standard": {
+        "command": "python src/train.py --population 28 --generations 100 --games 3 --workers 4",
+        "population": 28,
+        "generations": 100,
+        "games": 3,
+        "workers": 4,
+        "total_games": 8400,
+        "estimated_time_hours": 7.3,
+        "efficiency_percent": 100,
+        "use_case": "Standard production training, best balance"
+      },
+
+      "extended_quality": {
+        "command": "python src/train.py --population 32 --generations 100 --games 3 --workers 4",
+        "population": 32,
+        "generations": 100,
+        "games": 3,
+        "workers": 4,
+        "total_games": 9600,
+        "estimated_time_hours": 7.8,
+        "efficiency_percent": 100,
+        "use_case": "Slightly more diversity than 28"
+      },
+
+      "maximum_quality": {
+        "command": "python src/train.py --population 40 --generations 100 --games 5 --workers 4",
+        "population": 40,
+        "generations": 100,
+        "games": 5,
+        "workers": 4,
+        "total_games": 20000,
+        "estimated_time_hours": 16.3,
+        "efficiency_percent": 100,
+        "use_case": "Overnight run for best results"
+      }
+    }
+  },
+
+  "ram_considerations": {
+    "status": "sufficient",
+    "estimated_ram_usage_gb": 2.2,
+    "notes": "Current system has sufficient RAM for 4 workers with population up to 50",
+
+    "low_ram_alternatives": {
+      "description": "If running on system with <4GB available RAM, use these configs",
+      "2_workers": {
+        "command": "python src/train.py --population 20 --generations 100 --games 3 --workers 2",
+        "workers": 2,
+        "recommended_populations": [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 40],
+        "estimated_ram_gb": 1.6
+      },
+      "1_worker": {
+        "command": "python src/train.py --population 28 --generations 100 --games 3 --workers 1",
+        "workers": 1,
+        "note": "No alignment requirements, any population size works",
+        "estimated_ram_gb": 1.3
+      }
+    }
+  },
+
+  "training_dynamics": {
+    "early_generations": {
+      "description": "Generations 0-20, random weights, quick failures",
+      "avg_game_duration_seconds": 1.5,
+      "fitness_range": "10-500"
+    },
+
+    "middle_generations": {
+      "description": "Generations 20-50, improving weights, longer games",
+      "avg_game_duration_seconds": 5.0,
+      "fitness_range": "200-1000"
+    },
+
+    "late_generations": {
+      "description": "Generations 50+, optimized weights, much longer games",
+      "avg_game_duration_seconds": 20.0,
+      "fitness_range": "500-2000+",
+      "notes": "Training slows 2-3x compared to early generations"
+    }
+  },
+
+  "historical_runs": {
+    "run_20251108_104223": {
+      "date": "2025-11-08",
+      "configuration": {
+        "population": 5,
+        "generations": 50,
+        "games": 3,
+        "workers": "unknown"
+      },
+      "results": {
+        "generations_completed": 46,
+        "best_fitness": 1213.0,
+        "issues": [
+          "Population too small (only 5)",
+          "High fitness variance",
+          "62.5% worker efficiency if using 4 workers",
+          "Insufficient genetic diversity"
+        ]
+      }
+    }
+  }
+}
